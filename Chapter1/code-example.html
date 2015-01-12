@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html>
+<head lang="zh">
+    <meta charset="UTF-8">
+    <title>Chapter 1 - View</title>
+    <link type="text/css" href="../static/css/css.css" rel="stylesheet"/>
+    <script src="../static/js/jquery-2.1.1.min.js"></script>
+    <script type="text/javascript" src="../static/syntaxhighlighter/scripts/shCore.js"></script>
+	<script type="text/javascript" src="../static/syntaxhighlighter/scripts/shBrushJava.js"></script>
+	<script type="text/javascript" src="../static/syntaxhighlighter/scripts/shBrushCpp.js"></script>
+
+
+	<!--
+	<script type="text/javascript" src="../static/syntaxhighlighter/scripts/shBrushCss.js"></script>
+	<script type="text/javascript" src="../static/syntaxhighlighter/scripts/shBrushJScript.js"></script>
+	<script type="text/javascript" src="../static/syntaxhighlighter/scripts/shBrushBash.js"></script>
+    <script type="text/javascript" src="../static/syntaxhighlighter/scripts/shBrushCpp.js"></script>
+    <script type="text/javascript" src="../static/syntaxhighlighter/scripts/shBrushCSharp.js"></script>
+
+    <script type="text/javascript" src="../static/syntaxhighlighter/scripts/shBrushDelphi.js"></script>
+    <script type="text/javascript" src="../static/syntaxhighlighter/scripts/shBrushDiff.js"></script>
+    <script type="text/javascript" src="../static/syntaxhighlighter/scripts/shBrushGroovy.js"></script>
+    <script type="text/javascript" src="../static/syntaxhighlighter/scripts/shBrushJava.js"></script>
+
+    <script type="text/javascript" src="../static/syntaxhighlighter/scripts/shBrushPhp.js"></script>
+    <script type="text/javascript" src="../static/syntaxhighlighter/scripts/shBrushPlain.js"></script>
+    <script type="text/javascript" src="../static/syntaxhighlighter/scripts/shBrushPython.js"></script>
+    <script type="text/javascript" src="../static/syntaxhighlighter/scripts/shBrushRuby.js"></script>
+    <script type="text/javascript" src="../static/syntaxhighlighter/scripts/shBrushScala.js"></script>
+    <script type="text/javascript" src="../static/syntaxhighlighter/scripts/shBrushSql.js"></script>
+    <script type="text/javascript" src="../static/syntaxhighlighter/scripts/shBrushVb.js"></script>
+    <script type="text/javascript" src="../static/syntaxhighlighter/scripts/shBrushXml.js"></script> -->
+    <link type="text/css" rel="stylesheet" href="../static/syntaxhighlighter/styles/shCore.css"/>
+    <link type="text/css" rel="stylesheet" href="../static/syntaxhighlighter/styles/shThemeDefault.css"/>
+    <script type="text/javascript">
+        SyntaxHighlighter.config.clipboardSwf = '../static/syntaxhighlighter/scripts/clipboard.swf';
+        SyntaxHighlighter.config.strings = {
+            expandSource : '展开代码',
+            viewSource : '查看代码',
+            copyToClipboard : '复制代码',
+            copyToClipboardConfirmation : '代码复制成功',
+            print : '打印',
+            help: '?',
+            alert: '',
+            noBrush: '不能找到刷子: ',
+            brushNotHtmlScript: '刷子没有配置html-script选项',
+            aboutDialog: '<div></div>'
+        };
+        SyntaxHighlighter.all();
+    </script>
+
+</head>
+<body>
+<div class="title-index">目录</div>
+<div id="code-1">
+    <pre class="brush: java;" >
+package com.iflytek.elpmobile.smartlearning.ui;
+
+import java.util.List;
+
+import u.aly.t;
+
+import android.app.Activity;
+import android.app.Dialog;
+import android.content.Context;
+import android.content.Intent;
+import android.graphics.drawable.AnimationDrawable;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.Handler.Callback;
+import android.os.Message;
+import android.support.v4.view.GestureDetectorCompat;
+import android.util.Log;
+import android.view.GestureDetector;
+import android.view.LayoutInflater;
+import android.view.MotionEvent;
+import android.view.View;
+import android.view.View.OnClickListener;
+import android.view.View.OnTouchListener;
+import android.view.Window;
+import android.view.animation.Animation;
+import android.view.animation.Animation.AnimationListener;
+import android.view.animation.AnimationSet;
+import android.view.animation.AnimationUtils;
+import android.view.inputmethod.InputMethodManager;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.ScrollView;
+import android.widget.TextView;
+import com.iflytek.elpmobile.smartlearning.R;
+import com.iflytek.elpmobile.smartlearning.animation.PathAnimation;
+import com.iflytek.elpmobile.smartlearning.animation.PathPoint;
+import com.iflytek.elpmobile.smartlearning.common.data.UserInfo;
+import com.iflytek.elpmobile.smartlearning.engine.AppEngine;
+import com.iflytek.elpmobile.smartlearning.engine.IManager;
+import com.iflytek.elpmobile.smartlearning.engine.manager.NetworkManager;
+import com.iflytek.elpmobile.smartlearning.engine.network.ResponseHandler;
+import com.iflytek.elpmobile.smartlearning.engine.network.ResponseHandler.CommonTokenHandler;
+import com.iflytek.elpmobile.smartlearning.grade.Alading_Result;
+import com.iflytek.elpmobile.smartlearning.ui.base.BaseActivity;
+import com.iflytek.elpmobile.smartlearning.ui.base.CustomToast;
+import com.iflytek.elpmobile.smartlearning.ui.base.LoadingDialog;
+import com.iflytek.elpmobile.smartlearning.ui.base.SlowScrollView;
+import com.iflytek.elpmobile.utils.StringUtils;
+import com.umeng.analytics.MobclickAgent;
+
+public class Alading_Start_Slide extends BaseActivity implements
+		OnClickListener, Callback {
+
+	private final int MSG_SCROLL_TO_BOTTOM = 1001;
+	private final int MSG_ON_ALD_TOUCH_END = 1002;
+	private final int MSG_SHOW_DIALOG_ANIM = 1003;
+	private final int MSG_SHOW_BLINK_ANIM = 1004;
+
+	/**
+	 * 上个界面带来的学生成绩
+	 */
+	private String prescore = "";
+	/**
+	 * 上个界面带来的科目id
+	 */
+	private String pretopicSetId = "";
+	// 学生id
+	String token = "";
+	Button alading_more;
+	View resultView, choiceView;
+	// 默认比我低
+	private String choice = "低";
+	Dialog dialog;
+	Handler handler;
+	/**
+	 * 还剩多少次
+	 */
+	private int count = -1;
+	// private boolean isShowDialog = false;
+	LinearLayout close;
+	LinearLayout text_layout;
+	LinearLayout alading_view;
+	LinearLayout alading_choice_view;
+	TextView alading_remain;
+	EditText showresult;
+	ImageView light, people_image;
+	SlowScrollView scrollview;
+	EditText inputnames;
+	TextView showresult_text;
+	Button low, high;
+	int nowy;
+	boolean is_Stop_Image = true;
+	boolean is_Stop_Dialog = true;
+	boolean is_stop_Run = true;
+	private ImageView img_hand;
+	private PathAnimation mHandAnim;
+	private LinearLayout touch_layout;
+
+	private GestureDetectorCompat mGestureDetector;
+	private AnimationDrawable mBlinkRes;
+
+	private class MyGestureListener extends
+			GestureDetector.SimpleOnGestureListener {
+
+		@Override
+		public boolean onFling(MotionEvent event1, MotionEvent event2,
+				float velocityX, float velocityY) {
+			Log.i("test", "event2.getX()::" + event2.getX()
+					+ ",event1.getX()::" + event1.getX() + ",velocityX::"
+					+ velocityX);
+			if (event2.getX() - event1.getX() > 20 && Math.abs(velocityX) > 0) {
+				handler.sendEmptyMessage(MSG_ON_ALD_TOUCH_END);
+				touch_layout.setEnabled(false);
+			}
+			return true;
+		}
+
+	}
+
+	@Override
+	protected void onCreate(Bundle savedInstanceState) {
+		// TODO Auto-generated method stub
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.alading_start_slide);
+		initView();
+		initData();
+
+		handler.sendEmptyMessageDelayed(MSG_SCROLL_TO_BOTTOM, 100);
+	}
+
+	@Override
+	protected void onDestroy() {
+		img_hand.clearAnimation();
+		mBlinkRes.stop();
+		super.onDestroy();
+	}
+
+	private void initView() {
+		// 创建手势监听
+		mGestureDetector = new GestureDetectorCompat(this,
+				new MyGestureListener());
+
+		// TODO Auto-generated method stub
+		// 创建属于主线程的handler
+		handler = new Handler(Alading_Start_Slide.this);
+		close = (LinearLayout) findViewById(R.id.alading_slide_close);
+		close.setOnClickListener(this);
+		light = (ImageView) findViewById(R.id.alading_slide_light);
+		text_layout = (LinearLayout) findViewById(R.id.alading_slide_text_layout);
+		alading_view = (LinearLayout) findViewById(R.id.alading_view);
+		alading_choice_view = (LinearLayout) findViewById(R.id.alading_choice_view);
+		alading_choice_view.setOnClickListener(new OnClickListener() {
+
+			@Override
+			public void onClick(View arg0) {
+				// TODO Auto-generated method stub
+				hidenSoftInput(Alading_Start_Slide.this);
+			}
+		});
+		people_image = (ImageView) findViewById(R.id.alading_people_image);
+		mBlinkRes = (AnimationDrawable) people_image.getDrawable();
+		scrollview = (SlowScrollView) findViewById(R.id.scrollview);
+		scrollview.setOnTouchListener(new OnTouchListener() {
+			@Override
+			public boolean onTouch(View arg0, MotionEvent arg1) {
+				// TODO Auto-generated method stub
+				return true;
+			}
+		});
+		touch_layout = (LinearLayout) findViewById(R.id.touch_layout);
+		touch_layout.setOnTouchListener(new OnTouchListener() {
+			@Override
+			public boolean onTouch(View v, MotionEvent event) {
+				scrollview.requestDisallowInterceptTouchEvent(true);
+				return mGestureDetector.onTouchEvent(event);
+			}
+		});
+		img_hand = (ImageView) findViewById(R.id.img_hand);
+		// text_count = (TextView) findViewById(R.id.alading_slide_text_count);
+		setLightAnimationStatus(true);
+		if (dialog == null) {
+			dialog = new Dialog(this);
+			dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+		}
+
+		// 初始化选择对话框
+		initChoiceView();
+		// 初始化结果对话框
+		initResultView();
+
+		people_image.setVisibility(View.GONE);
+		alading_view.setVisibility(View.GONE);
+		alading_choice_view.setVisibility(View.GONE);
+	}
+
+	private PathAnimation getHandAnimation() {
+		if (mHandAnim == null) {
+			PathPoint controlPoint[] = new PathPoint[4];
+			controlPoint[0] = new PathPoint(82, 313); // 起点
+			controlPoint[1] = new PathPoint(300, 403); // 控制点
+			controlPoint[2] = new PathPoint(370, 305); // 控制点
+			controlPoint[3] = new PathPoint(431, 278); // 终点
+			mHandAnim = new PathAnimation(this, 1500, controlPoint[0],
+					controlPoint[1], controlPoint[2], controlPoint[3]);
+			mHandAnim.setRepeatCount(-1);
+			mHandAnim.setRepeatMode(Animation.RESTART);
+		}
+		return mHandAnim;
+	}
+
+	// 启动或暂停手指的移动动画
+	private void setLightAnimationStatus(boolean start) {
+		if (start) {
+			img_hand.setVisibility(View.VISIBLE);
+			img_hand.startAnimation(getHandAnimation());
+		} else {
+			img_hand.clearAnimation();
+			img_hand.setVisibility(View.GONE);
+		}
+	}
+
+	private void initResultView() {
+		showresult_text = (TextView) findViewById(R.id.alading_showresult_text);
+		showresult = (EditText) findViewById(R.id.alading_showresult);
+		alading_remain = (TextView) findViewById(R.id.alading_remain);
+		alading_more = (Button) findViewById(R.id.alading_more);
+		// 再来一次
+		alading_more.setOnClickListener(new OnClickListener() {
+
+			@Override
+			public void onClick(View v) {
+				// TODO Auto-generated method stub
+				if (count > 0) {
+					choice = "低";
+					low.setBackgroundResource(R.drawable.alading_green);
+					high.setBackgroundResource(R.drawable.alading_gray);
+					alading_choice_view.setVisibility(View.VISIBLE);
+					alading_view.setVisibility(View.GONE);
+					inputnames.setText("");
+				} else {
+					CustomToast.showToast(Alading_Start_Slide.this, "你的机会用完啦~",
+							CustomToast.LENGTH_LONG);
+				}
+			}
+		});
+	}
+
+	private void initChoiceView() {
+		inputnames = (EditText) findViewById(R.id.alading_inputname);
+		low = (Button) findViewById(R.id.alading_low);
+		high = (Button) findViewById(R.id.alading_high);
+		low.setOnClickListener(new OnClickListener() {
+
+			@Override
+			public void onClick(View v) {
+				// TODO Auto-generated method stub
+				choice = "低";
+				low.setBackgroundResource(R.drawable.alading_green);
+				high.setBackgroundResource(R.drawable.alading_gray);
+				hidenSoftInput(Alading_Start_Slide.this);
+			}
+		});
+
+		high.setOnClickListener(new OnClickListener() {
+
+			@Override
+			public void onClick(View v) {
+				// TODO Auto-generated method stub
+				choice = "高";
+				low.setBackgroundResource(R.drawable.alading_gray);
+				high.setBackgroundResource(R.drawable.alading_green);
+				hidenSoftInput(Alading_Start_Slide.this);
+			}
+		});
+
+		// 怒揭答案
+		Button seeresult = (Button) findViewById(R.id.alading_seeresult);
+		seeresult.setOnClickListener(new OnClickListener() {
+
+			@Override
+			public void onClick(View v) {
+				// TODO Auto-generated method stub
+				if (!StringUtils.isEmpty(inputnames.getText().toString())
+						&& !choice.equals("")) {
+					getResult(token, inputnames.getText().toString().trim(),
+							pretopicSetId, choice);
+					// getCount(token, pretopicSetId);
+				} else if (StringUtils.isEmpty(inputnames.getText().toString())) {
+					CustomToast.showToast(Alading_Start_Slide.this, "姓名不为空",
+							CustomToast.LENGTH_SHORT);
+				} else {
+					CustomToast.showToast(Alading_Start_Slide.this,
+							"请选择后再揭晓答案", CustomToast.LENGTH_LONG);
+				}
+			}
+
+		});
+
+	}
+
+	private void initData() {
+
+		Intent intent = getIntent();
+		/* 取出Intent中附加的数据 */
+		try {
+			prescore = intent.getStringExtra("score");
+			pretopicSetId = intent.getStringExtra("topicSetId");
+			token = UserInfo.getInstanceToken();
+			System.out.println("score:" + prescore + "setid:" + pretopicSetId
+					+ "token:" + token);
+		} catch (Exception e) {
+			// TODO: handle exception
+		}
+		// changeLight();
+
+	}
+
+	@Override
+	public void onClick(View arg0) {
+		// TODO Auto-generated method stub
+		switch (arg0.getId()) {
+		case R.id.alading_slide_close:
+			finish();
+			break;
+		case R.id.alading_slide_light:
+			onAladingTouchEnd();
+			break;
+		default:
+			break;
+		}
+	}
+
+	private void onAladingTouchEnd() {
+		choice = "低";
+		low.setBackgroundResource(R.drawable.alading_green);
+		high.setBackgroundResource(R.drawable.alading_gray);
+		inputnames.setText("");
+		showAladingPeopleAnim();
+		setLightAnimationStatus(false);
+		alading_view.setVisibility(View.GONE);
+	}
+
+	@Override
+	public byte activityId() {
+		return ALADING_ID;
+	}
+
+	// 显示阿拉丁动画
+	private void showAladingPeopleAnim() {
+		scrollview.fullScroll(ScrollView.FOCUS_UP);
+		people_image.setVisibility(View.VISIBLE);
+		Animation animPeople = AnimationUtils.loadAnimation(this,
+				R.anim.light_people_anim);
+		animPeople.setFillAfter(true);
+		animPeople.setFillEnabled(true);
+		animPeople.setAnimationListener(new AnimationListener() {
+
+			@Override
+			public void onAnimationStart(Animation animation) {
+				// TODO Auto-generated method stub
+
+			}
+
+			@Override
+			public void onAnimationRepeat(Animation animation) {
+				// TODO Auto-generated method stub
+
+			}
+
+			@Override
+			public void onAnimationEnd(Animation animation) {
+				// TODO Auto-generated method stub
+				alading_choice_view.clearAnimation();
+				handler.sendEmptyMessage(MSG_SHOW_DIALOG_ANIM);
+			}
+		});
+		people_image.setVisibility(View.VISIBLE);
+		people_image.startAnimation(animPeople);
+	}
+
+	// 显示dialog动画
+	private void showAladingDialogAnim() {
+		final Animation animDialog = AnimationUtils.loadAnimation(this,
+				R.anim.light_dialog_anim);
+		animDialog.setInterpolator(this,
+				android.R.anim.anticipate_overshoot_interpolator);
+		animDialog.setFillAfter(true);
+		animDialog.setFillEnabled(true);
+		animDialog.setAnimationListener(new AnimationListener() {
+
+			@Override
+			public void onAnimationStart(Animation animation) {
+				// TODO Auto-generated method stub
+
+			}
+
+			@Override
+			public void onAnimationRepeat(Animation animation) {
+				// TODO Auto-generated method stub
+
+			}
+
+			@Override
+			public void onAnimationEnd(Animation animation) {
+				alading_choice_view.clearAnimation();
+				handler.sendEmptyMessage(MSG_SHOW_BLINK_ANIM);
+			}
+		});
+
+		alading_choice_view.startAnimation(animDialog);
+		alading_choice_view.setVisibility(View.VISIBLE);
+	}
+
+	private void showBlinkAnim() {
+		mBlinkRes.start();
+	}
+
+	private View getNobodyView(Context context) {
+		LayoutInflater layoutInflater = LayoutInflater.from(context);
+		View nobody_View = layoutInflater
+				.inflate(R.layout.alading_nobody, null);
+		return nobody_View;
+	}
+
+	/*
+	 * private void getCount(String token, final String examId) { final
+	 * LoadingDialog ldialog = new LoadingDialog(this);
+	 * ldialog.showDialog("数据努力加载中……", true); ((NetworkManager)
+	 * (AppEngine.getInstance()
+	 * .getManager(IManager.NETWOTK_ID))).guessCount(token, examId, new
+	 * ResponseHandler.CommonTokenHandler() {
+	 *
+	 * @Override public void onSuccess(Object obj) { ldialog.dismissDialog();
+	 * count = (Integer) obj; count--; alading_remain.setText("还剩" + count +
+	 * "次"); }
+	 *
+	 * @Override public void onFailed(int errorCode, String errorDescription) {
+	 * count = -1; ldialog.dismissDialog(); if (errorDescription == null ||
+	 * errorDescription.equals("")) {
+	 * CustomToast.showToast(Alading_Start_Slide.this, "网络连接失败",
+	 * CustomToast.LENGTH_SHORT); } else {
+	 * CustomToast.showToast(Alading_Start_Slide.this, errorDescription,
+	 * CustomToast.LENGTH_SHORT); } }
+	 *
+	 * @Override public void onTokenAccess(boolean result, String newToken) {
+	 * count = -1; ldialog.dismissDialog(); if (result) { getCount(newToken,
+	 * examId); } } }); }
+	 */
+
+	private void getResult(final String token, final String name,
+			final String examId, final String upOrlow) {
+		final LoadingDialog ldialog = new LoadingDialog(this);
+		ldialog.showDialog("数据努力加载中……", true);
+		((NetworkManager) (AppEngine.getInstance()
+				.getManager(IManager.NETWOTK_ID))).guessScore(token, name,
+				examId, new CommonTokenHandler() {
+
+					@Override
+					public void onSuccess(Object obj) {
+						people_image.setVisibility(View.VISIBLE);
+						alading_choice_view.setVisibility(View.GONE);
+						alading_view.setVisibility(View.VISIBLE);
+						ldialog.dismissDialog();
+
+						// showResultDialog(inputname, upOrlow, resultView);
+						choice = "";
+						Alading_Result alading_Result = (Alading_Result) obj;
+						count = alading_Result.getCount();
+						alading_remain.setText("还剩" + count + "次");
+						// 自己假定一个值
+						float myScore = Float.parseFloat(prescore);
+						// int myScore = 50;
+						String result = "";
+						String rightOrWrong = "";
+						boolean flag = false;
+						if (alading_Result.getScores().size() > 1) {
+							flag = true;
+						}
+						for (int i = 0; i < alading_Result.getScores().size(); i++) {
+							if (upOrlow.equals("高")
+									&& myScore < alading_Result.getScores()
+											.get(i)) {
+								result = result + "你猜对啦，" + name;
+								if (flag == true) {
+									result = result + (i + 1) + "同学分数比你高\n";
+								} else {
+									result = result + "同学分数比你高\n";
+								}
+
+							} else if (upOrlow.equals("高")
+									&& myScore >= alading_Result.getScores()
+											.get(i)) {
+								result = result + "你猜错啦，" + name;
+								if (flag == true) {
+									result = result + (i + 1) + "同学分数没你高\n";
+								} else {
+									result = result + "同学分数没你高\n";
+								}
+								rightOrWrong = "错误";
+							} else if (upOrlow.equals("低")
+									&& myScore <= alading_Result.getScores()
+											.get(i)) {
+								result = result + "你猜错啦，" + name;
+								if (flag == true) {
+									result = result + (i + 1) + "同学分数没你低\n";
+								} else {
+									result = result + "同学分数没你低\n";
+								}
+								rightOrWrong = "错误";
+							} else if (upOrlow.equals("低")
+									&& myScore > alading_Result.getScores()
+											.get(i)) {
+								result = result + "你猜对啦，" + name;
+								if (flag == true) {
+									result = result + (i + 1) + "同学分数比你低\n";
+								} else {
+									result = result + "同学分数比你低\n";
+								}
+							}
+						}
+						if (flag == true) {
+							showresult_text.setText("加油!");
+						} else {
+							if (rightOrWrong.equals("错误")) {
+								showresult_text.setText("失败!");
+							} else {
+								showresult_text.setText("成功!");
+							}
+						}
+						showresult.setText(result);
+					}
+
+					@Override
+					public void onFailed(int errorCode, String errorDescription) {
+						ldialog.dismissDialog();
+						if (errorCode == 4001) {
+							showNobodyDialog();
+						} else if (errorCode == 4002) {
+							CustomToast.showToast(Alading_Start_Slide.this,
+									"你的机会用完啦~", CustomToast.LENGTH_SHORT);
+						} else {
+							if (errorDescription == null
+									|| errorDescription.equals("")) {
+								CustomToast.showToast(Alading_Start_Slide.this,
+										"网络连接失败", CustomToast.LENGTH_SHORT);
+							} else {
+								CustomToast.showToast(Alading_Start_Slide.this,
+										errorDescription,
+										CustomToast.LENGTH_SHORT);
+							}
+						}
+					}
+
+					@Override
+					public void onTokenAccess(boolean result, String newToken) {
+						ldialog.dismissDialog();
+						if (result) {
+							getResult(newToken, name, examId, upOrlow);
+						}
+					}
+				});
+	}
+
+	// 构建Runnable对象，在runnable中更新界面
+	Runnable runToBottom = new Runnable() {
+		@Override
+		public void run() {
+			System.out.println("down");
+			scrollview.fullScroll(ScrollView.FOCUS_DOWN);
+		}
+	};
+
+	// 构建Runnable对象，在runnable中更新界面
+	Runnable slowScroll = new Runnable() {
+		@Override
+		public void run() {
+			if (nowy - 10 > 0) {
+				nowy -= 10;
+				scrollview.scrollTo(0, nowy);
+			}
+		}
+	};
+
+	@Override
+	public boolean handleMessage(Message msg) {
+
+		switch (msg.what) {
+		case MSG_SCROLL_TO_BOTTOM:
+			handler.post(runToBottom);
+			break;
+		case MSG_ON_ALD_TOUCH_END:
+			onAladingTouchEnd();
+			break;
+		case MSG_SHOW_DIALOG_ANIM:
+			showAladingDialogAnim();
+			break;
+		case MSG_SHOW_BLINK_ANIM:
+			showBlinkAnim();
+			break;
+		default:
+			break;
+		}
+
+		return true;
+	}
+
+	/**
+	 * 展示无人对话框
+	 */
+	private void showNobodyDialog() {
+		Dialog dialog2 = new Dialog(this, R.style.TransparentDialog);
+
+		dialog2.setContentView(getNobodyView(Alading_Start_Slide.this));
+
+		dialog2.show();
+
+		dialog2.setCancelable(true);
+		dialog2.setCanceledOnTouchOutside(true);
+	}
+
+	public void onResume() {
+		super.onResume();
+		MobclickAgent.onPageStart("Alading_Start_Slide");
+		MobclickAgent.onResume(this);
+	}
+
+	public void onPause() {
+		super.onPause();
+		MobclickAgent.onPageEnd("Alading_Start_Slide");
+		MobclickAgent.onPause(this);
+	}
+
+	// 隐藏输入法
+	public static void hidenSoftInput(Activity act) {
+		try {
+			InputMethodManager imm = (InputMethodManager) act
+					.getSystemService(Context.INPUT_METHOD_SERVICE);
+			imm.hideSoftInputFromWindow(act.getCurrentFocus().getWindowToken(),
+					0); // 强制隐藏键盘
+		} catch (Exception e) {
+			// TODO: handle exception
+		}
+
+	}
+}
+
+    </pre>
+</div>
+</body>
+</html>

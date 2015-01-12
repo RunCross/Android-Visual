@@ -1,0 +1,412 @@
+package cross.run.app.tucaoc.service.download;
+
+import java.io.File;
+import java.util.HashMap;
+import java.util.Iterator;
+import cross.run.app.common.bean.VideoDownloadTaskInfo;
+import cross.run.app.common.component.Logger;
+import cross.run.app.common.utils.download.FileDownloadListener;
+import cross.run.app.common.utils.download.FileDownloader;
+import cross.run.app.tucaoc.TuCaoApplication;
+import cross.run.app.tucaoc.bean.PlayInfo;
+import cross.run.app.tucaoc.bean.VideoInfo;
+import cross.run.app.tucaoc.bean.VideoPartInfo;
+import cross.run.app.tucaoc.manager.Hand.VideoAnalysisHand;
+import cross.run.app.tucaoc.manager.VideoManager;
+import cross.run.app.tucaoc.utils.StringUtils;
+import cross.run.app.tucaoc.utils.db.MyDataBaseTransaction;
+import android.app.Service;
+import android.content.Intent;
+import android.os.Binder;
+import android.os.Handler;
+import android.os.Message;
+import android.os.Handler.Callback;
+
+/**
+ * 下载核心服务
+ *
+ * @author gjyuan
+ *
+ */
+public class DownloadService extends Service {
+
+	private String TAG = "DownloadService";
+
+	private MyDataBaseTransaction dbTran;
+
+	private HashMap<String, VideoDownStatus> downMap;
+
+	// 下载线程
+	// private Thread dThread;
+
+	// 消息处理
+	private Handler hand;
+
+	private boolean isDownload = false;
+
+	private HashMap<String, Integer> downloadProcess;
+
+	private MyBinder binder;
+
+	@Override
+	public MyBinder onBind(Intent intent) {
+		Logger.d(TAG, "onBind");
+		return binder;
+	}
+
+	@Override
+	public void onCreate() {
+		Logger.d(TAG, "onCreate");
+		hand = new Handler(messageProcess);
+		downloadProcess = new HashMap<String, Integer>();
+		dbTran = new MyDataBaseTransaction();
+		downMap = new HashMap<String, VideoDownStatus>();
+		binder = new MyBinder();
+		super.onCreate();
+	}
+
+	@Override
+	public int onStartCommand(Intent intent, int flags, int startId) {
+		Logger.d(TAG, "start");
+		return super.onStartCommand(intent, flags, startId);
+	}
+
+	/**
+	 * 添加一个下载信息到map和数据库
+	 *
+	 * @param video
+	 * @param videoPart
+	 */
+	private void addDownloadTaskInfo(VideoInfo video, VideoPartInfo videoPart) {
+		dbTran.insertDownload(video, videoPart);
+//		VideoDownStatus status = new VideoDownStatus(0, videoPart);
+		VideoDownStatus status = downMap.get(videoPart.type + "=" + videoPart.vid);
+		if(status!=null){
+			status.process = 0;
+		}else{
+			status = new VideoDownStatus(0, videoPart);
+			downMap.put(videoPart.type + "=" + videoPart.vid, status);
+		}
+	}
+
+	/**
+	 * 内部钩子
+	 *
+	 * @author gjyuan
+	 *
+	 */
+	public class MyBinder extends Binder {
+		public String test() {
+			return "service is get";
+		}
+
+		/**
+		 * 添加一个下载请求
+		 *
+		 * @param video
+		 * @param videoPart
+		 * @param task
+		 */
+		public void addDownladTask(VideoInfo video, VideoPartInfo videoPart) {
+			new MyDataBaseTransaction().insertDownload(video, videoPart);
+			Logger.d(TAG, "addDownladTask isDownload = " + isDownload);
+			if (!isDownload) {// 当前没有下载线程
+				isDownload = true;
+				addDownloadTaskInfo(video, videoPart);
+				sendMessage(GET_NEXT_TASK, null);
+			} else {// 当前正在下载
+				addDownloadTaskInfo(video, videoPart);
+			}
+		}
+
+		/**
+		 * 根据videopart获取下载状态
+		 *
+		 * @param part
+		 * @return -2 不存在,从数据库获取 -1 下载失败 0 等待下载 0-100下载中
+		 */
+		public int getDownloadStatus(VideoPartInfo part) {
+			VideoDownStatus status = downMap.get(part.type + "=" + part.vid);
+			return status == null ? -2 : status.process;
+		}
+
+		/**
+		 * 根据videopart获取下载状态
+		 *
+		 * @param id
+		 * @return -2 不存在,从数据库获取 -1 下载失败 0 等待下载 0-100下载中
+		 */
+		public int getDownloadStatus(String id) {
+			VideoDownStatus status = downMap.get(id);
+			return status == null ? -2 : status.process;
+		}
+
+		/**
+		 * 根据videopart删除一个下载任务
+		 *
+		 * @param part
+		 * @return
+		 */
+		public int deleteDownloadTask(VideoPartInfo part) {
+			downMap.remove(part.type + "=" + part.vid);
+			dbTran.deleteDownload(part);
+			return 0;
+		}
+	}
+
+	/**
+	 * 创建一个下载线程
+	 */
+	final int START_TASK = 1;
+	/**
+	 * 开启下一个下载线程
+	 */
+	final int NEXT_START = 2;
+	/**
+	 * 获取视频下载地址
+	 */
+	final int GET_URL = 3;
+	/**
+	 * 全部任务下载完毕
+	 */
+	final int COMPLETE_ALL = 4;
+	/**
+	 * 单个part视频下载完毕
+	 */
+	final int COMPLETE_SINGLE = 5;
+
+	/**
+	 * 获取下一个任务
+	 */
+	final int GET_NEXT_TASK = 6;
+
+	/**
+	 * 获取下一个任务的下载地址
+	 */
+	final int GET_NEXT_URL = 7;
+
+	/**
+	 * 获取下一个任务的弹幕
+	 */
+	final int GET_NEXT_DANMU = 8;
+
+	/**
+	 * 一次下载事务结束的时候,失败
+	 */
+	final int END_SINGLE = 9;
+	/**
+	 * 消息中转处理
+	 */
+	private Callback messageProcess = new Callback() {
+
+		@Override
+		public boolean handleMessage(Message msg) {
+			switch (msg.what) {
+			case START_TASK:
+				createNewThread((VideoDownloadTaskInfo) msg.obj);
+				break;
+			case GET_NEXT_TASK:
+				getNextDownloadTask();
+				break;
+			case GET_NEXT_URL:
+				getDownloadUrl((VideoPartInfo) msg.obj);
+				break;
+			case END_SINGLE:
+				isDownload = false;
+			}
+			return false;
+		}
+	};
+
+	/**
+	 * 获取一个未下载视频事务
+	 */
+	private void getNextDownloadTask() {
+		// VideoPartInfo part = dbTran.getUnDownloadVideoPart();
+		if (downMap.isEmpty()) {
+			Logger.d(TAG, "getNextDownload = empty");
+			sendMessage(END_SINGLE, null);
+			return;
+		}
+		// Set<Entry<String, VideoDownStatus>>> = downMap.entrySet();
+		// Set<Entry<String, VideoDownStatus>> set = downMap.entrySet();
+		// Set<String> keys = downMap.keySet();
+		Iterator<String> iter = downMap.keySet().iterator();
+		VideoPartInfo part = null;
+		VideoDownStatus status;
+		while (iter.hasNext()) {
+			status = downMap.get(iter.next());
+			if (status.process == 0) {
+				part = status.part;
+			}
+		}
+
+		if (part != null && !StringUtils.isEmpty(part.vid)
+				&& !StringUtils.isEmpty(part.type)) {
+			Logger.d(TAG, "getNextDownload = " + part.type + "=" + part.vid);
+			sendMessage(GET_NEXT_URL, part);
+		} else {
+			if (part != null) {
+				Logger.d(TAG, "getNextDownload = null" + " type is "
+						+ (part.type == null) + " vid is " + (part.vid == null));
+				setDownloadStatus(part.type + "=" + part.vid, -1);
+			} else {
+				Logger.d(TAG, "getNextDownload = null");
+			}
+
+			sendMessage(END_SINGLE, null);
+		}
+	}
+
+	/**
+	 * 根据视频信息获取视频下载地址
+	 *
+	 * @param part
+	 */
+	private void getDownloadUrl(final VideoPartInfo part) {
+		VideoManager manager = new VideoManager();
+		manager.getPlayURL(part, new VideoAnalysisHand() {
+
+			@Override
+			public void success(PlayInfo urls) {
+				VideoDownloadTaskInfo task = new VideoDownloadTaskInfo(
+						part.type + "=" + part.vid,
+						TuCaoApplication.VIDEO_DOWNLOAD + File.separator
+								+ part.hid + File.separator + part.vid
+								+ File.separator + "d.d");
+				int index = 0;
+				while (urls.hasNext()) {
+					task.addDownloadTask(urls.moveToNext(),
+							TuCaoApplication.VIDEO_DOWNLOAD + File.separator
+									+ part.hid + File.separator + part.vid
+									+ File.separator + index);
+					index++;
+				}
+				if (index > 0) {
+					sendMessage(START_TASK, task);
+				} else {
+					setDownloadStatus(part.type + "=" + part.vid, -1);
+					Logger.d(TAG, "getDownloadUrl succ -> failed "+part.type + "=" + part.vid);
+					sendMessage(GET_NEXT_TASK, null);
+				}
+			}
+
+			@Override
+			public void failed() {
+				setDownloadStatus(part.type + "=" + part.vid, -1);
+				Logger.d(TAG, "getDownloadUrl failed "+part.type + "=" + part.vid);
+				sendMessage(GET_NEXT_TASK, null);
+			}
+		});
+	}
+
+	/**
+	 * 开启一条线程下载
+	 *
+	 * @param task
+	 */
+	private void createNewThread(VideoDownloadTaskInfo task) {
+		Logger.d(TAG, "createNewThread = " + task.getTaskId() + "\n");
+		Thread dThread = new Thread(new FileDownloader(downloadListener, task));
+		dThread.start();
+	}
+
+	private FileDownloadListener downloadListener = new FileDownloadListener() {
+
+		@Override
+		public void onDownloadStart(VideoDownloadTaskInfo task) {
+			setDownloadStatus(task.getTaskId(), 1);
+		}
+
+		@Override
+		public void onDownloadProcess(VideoDownloadTaskInfo task) {
+			setDownloadStatus(task.getTaskId(), task.getProgcess());
+			downloadProcess.put(task.getTaskId(), task.getProgcess());
+		}
+
+		@Override
+		public void onDownloadError(VideoDownloadTaskInfo task) {
+			setDownloadStatus(task.getTaskId(), -1);
+			Logger.d(TAG, "onDownloadError = " + task.getTaskId());
+			sendMessage(GET_NEXT_TASK, null);
+		}
+
+		@Override
+		public void onDownloadComplete(VideoDownloadTaskInfo task) {
+			Logger.d(TAG, "onDownloadComplete = " + task.getTaskId());
+			String[] temp = task.getTaskId().split("=");
+			VideoPartInfo part = new VideoPartInfo();
+			part.type = temp[0];
+			part.vid = temp[1];
+			dbTran.updateDownloadComplete(part);
+			downMap.remove(task.getTaskId());
+			sendMessage(GET_NEXT_TASK, null);
+		}
+	};
+
+	/**
+	 * 重置下载状态标志位
+	 *
+	 * @param id
+	 * @param process
+	 */
+	private void setDownloadStatus(String id, int process) {
+		Object obj = downMap.get(id);
+		if (obj == null) {
+			return;
+		}
+		VideoDownStatus down = (VideoDownStatus) obj;
+		down.process = process;
+	}
+
+	/**
+	 * 发送消息
+	 *
+	 * @param what
+	 * @param obj
+	 */
+	private void sendMessage(int what, Object obj) {
+		Message msg = Message.obtain();
+		msg.what = what;
+		if (obj != null) {
+			msg.obj = obj;
+		}
+		hand.sendMessage(msg);
+	}
+
+	/**
+	 * 下载状态
+	 *
+	 * @author gjyuan
+	 *
+	 */
+	public class VideoDownStatus {
+		/**
+		 * -2 不存在,从数据库获取 -1 下载失败 0 等待下载 1-100下载中或下载完成
+		 */
+		public int process;
+		public VideoPartInfo part;
+
+		public VideoDownStatus(int process, VideoPartInfo part) {
+			this.process = process;
+			this.part = part;
+		}
+
+		public VideoDownStatus(VideoPartInfo part) {
+			this(0, part);
+		}
+
+	}
+
+	@Override
+	public boolean onUnbind(Intent intent) {
+		Logger.d(TAG, "onUnbind");
+		return super.onUnbind(intent);
+	}
+
+	@Override
+	public void onDestroy() {
+		Logger.d(TAG, "onUnbind");
+		super.onDestroy();
+	}
+}

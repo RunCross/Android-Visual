@@ -1,2 +1,3 @@
-# Android-Visual
-Android相关的界面组件等
+#Android-Visual
+=============
+总结Android上视觉效果相关知识，例如自定义组件、事件监听、动画效果等。

@@ -1,0 +1,55 @@
+.title-index{
+    font-family:"Microsoft YaHei","MicrosoftJhengHei",STHeiti,MingLiu;
+    font-size:40px;
+    text-align:center;
+}
+.index{
+    font-family:"Microsoft YaHei","MicrosoftJhengHei",STHeiti,MingLiu;
+    font-size:25px;
+    margin-top: 10px;
+    margin-left: 44%;
+}
+.index a{
+    text-decoration:none;
+}
+.index a:link{
+    color:	#000000;
+}
+.index a:visited{
+    color:	#BEBEBE	;
+}
+.index a:hover{
+    color: #00CACA;
+}
+
+.code{
+   color: #000000;
+    font-size: 15px;
+    font-family: "Times New Roman";
+    background-color: #BEBEBE;
+}
+.index span{
+    display: block;
+    font-size:25px;
+}
+.index>span+a{
+    font-size:20px;
+    display:none
+}
+#dlmenu {height:10em;margin-top: 20px;font-size:20px;}
+#menu {list-style-type:none; margin: 0 auto; padding:0; position:relative; width:15em; background:#fff; z-index:100;}
+#menu li {display:block; padding:0; margin:0; position:relative; z-index:100;}
+#menu li a, #menu li a:visited {display:block; text-decoration:none;}
+#menu li dd {display:none;}
+#menu li:hover, #menu li a:hover {border:0;}
+#menu li:hover dt a , #menu li a:hover dt a {background:#d4d8bd url(top_grad_2.gif) center center; color:#ff0; }
+#menu li:hover dd, #menu li a:hover dd {display:block;}
+#menu li:hover dl, #menu li a:hover dl {height:10em; background:#b4be9c url(sub_grad.gif);}
+#menu table {border-collapse:collapse; padding:0; margin:-4px; font-size:1em;}
+#menu dl {width: 12em; margin: 0; background: #fff; cursor:pointer;}
+#menu dt {margin:0; padding: 0; font-size: 1.1em; border-top:1px solid #cce;}
+#menu dd {margin:0; padding:0; font-size: 1em; text-align:left; }
+.gallery dt a, .gallery dt a:visited {display:block; color:#fff; padding:5px 5px 5px 10px; background:#949e7c url(top_grad.gif) center center;}
+.gallery dd a, .gallery dd a:visited {color:#000; min-height:1em; text-decoration:none; display:block; padding:4px 5px 4px 20px; background:#b4be9c url(sub_grad.gif);}
+* html .gallery dd a, * html .gallery dd a:visited {height:1em;}
+.gallery dd a:hover {background: #a2ae03; color:#ff0;}
