@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html>
+<head lang="zh">
+    <meta charset="UTF-8">
+    <title>Chapter 4 - Container - fragment</title>    
+        <link type="text/css" href="../static/css/css.css" rel="stylesheet"/>
+        <script src="../static/js/jquery-2.1.1.min.js"></script>
+        <script type="text/javascript" src="../static/syntaxhighlighter/scripts/shCore.js"></script>
+    	<script type="text/javascript" src="../static/syntaxhighlighter/scripts/shBrushJava.js"></script>
+    	<script type="text/javascript" src="../static/syntaxhighlighter/scripts/shBrushXml.js"></script>
+    	<link type="text/css" rel="stylesheet" href="../static/syntaxhighlighter/styles/shCore.css"/>
+    	<link type="text/css" rel="stylesheet" href="../static/syntaxhighlighter/styles/shThemeDefault.css"/>
+    	<script type="text/javascript">
+    	    SyntaxHighlighter.config.clipboardSwf = '../static/syntaxhighlighter/scripts/clipboard.swf';
+    	    SyntaxHighlighter.config.strings = {
+    	        expandSource : '展开代码',
+    	        viewSource : '查看代码',
+    	        copyToClipboard : '复制代码',
+    	        copyToClipboardConfirmation : '代码复制成功',
+    	        print : '打印',
+    	        help: '?',
+    	        alert: '',
+    	        noBrush: '不能找到刷子: ',
+    	        brushNotHtmlScript: '刷子没有配置html-script选项',
+    	        aboutDialog: '<div></div>'
+    	    };
+    	    SyntaxHighlighter.all();
+    	</script>
+
+</head>
+<body>
+<div>
+<pre>
+	本文介绍的fragment基于Android3.0，support V4里的用法类似。
+	fragment是3.0以后用于展示切换界面的、有生命周期的一个容器。通常用于切换页面、适配平板和手机用途。
+	在Android3.0以上的系统中，可直接在Activity中使用fragment，如要兼容低版本的Android，使用support V4的，需要继承V4的FragmentActivity。
+	通过以下代码，就能替换fragment的显示。
+	<pre class="brush: java;">
+		private FragmentManager mFragmentManager;
+		private FragmentTransaction mFragmentTransaction;
+		private Fragment fragment;
+
+		/**
+			 * 开启fragment事务
+			 * 
+			 * @return
+			 */
+		protected FragmentTransaction ensureTransaction() {
+			if (mFragmentTransaction == null) {
+				mFragmentTransaction = mFragmentManager.beginTransaction();
+				mFragmentTransaction
+					.setTransition(FragmentTransaction.TRANSIT_FRAGMENT_FADE);
+			}
+
+			return mFragmentTransaction;
+			}
+
+		/**
+		 * 提交fragment事务
+		 */
+		protected void commitTransactions() {
+			if (mFragmentTransaction != null && !mFragmentTransaction.isEmpty()) {
+			// 下级fragment放入栈里
+			// back键重现
+			if (((BaseFragment) fragment).getLevel() > BaseFragment.TOP) {
+			mFragmentTransaction.addToBackStack("fragment");
+			}
+			mFragmentTransaction.commitAllowingStateLoss();
+			Logger.d(TAG, "fragment level change stack = "
+					+ mFragmentManager.getBackStackEntryCount());
+			mFragmentTransaction = null;
+				}
+		}
+
+		/**
+		 * 获取当前要显示fragment
+		 * 
+		 * @param info
+		 * @return
+		 */
+		private Fragment getFragment(MenuItemInfo info) {
+			fragment = ((FragmentSelectManger) AppEngine.getInstance().getManager(
+					IManager.FRAGMENT)).getFragment(info);
+			mFragmentTransaction.setCustomAnimations(R.anim.fragment_slide_left_enter, R.anim.fragment_slide_left_exit, R.anim.fragment_slide_right_enter,R.anim.fragment_slide_right_exit);
+			mFragmentTransaction.replace(R.id.main_content, fragment);
+			return fragment;
+		}
+	</pre>
+	mFragmentTransaction.setCustomAnimations 用于添加fragment的切换动画。
+	<pre class="brush: xml;">
+	<?xml version="1.0" encoding="utf-8"?>
+	<set xmlns:android="http://schemas.android.com/apk/res/android"
+	    android:shareInterpolator="false" >
+	    <!-- @android:integer/config_mediumAnimTime -->
+	    <objectAnimator
+	        android:duration="500"
+	        android:interpolator="@android:interpolator/decelerate_quint"
+	        android:propertyName="translationX"
+	        android:valueFrom="100dp"
+	        android:valueTo="0dp"
+	        android:valueType="floatType" ></objectAnimator>
+	    <objectAnimator
+	        android:duration="500"
+	        android:interpolator="@android:interpolator/decelerate_quint"
+	        android:propertyName="alpha"
+	        android:valueFrom="0.0"
+	        android:valueTo="1.0"
+	        android:valueType="floatType" ></objectAnimator>
+	</set>
+	</pre>
+	<img src="static/img/fragment-alive.png"/>
+	</pre>
+</div>
+<div>
+    <pre class="brush: java;" >
+    package cross.run.app.common.view.base;
+
+    import com.umeng.analytics.MobclickAgent;
+
+    import android.app.Fragment;
+    import android.os.Bundle;
+    import android.os.Handler;
+    import android.os.Handler.Callback;
+    import android.view.LayoutInflater;
+    import android.view.View;
+    import android.view.ViewGroup;
+    import cross.run.app.common.bean.MenuItemInfo;
+    import cross.run.app.common.component.Logger;
+
+    public abstract class BaseFragment extends Fragment implements Callback{
+
+    	public static final int BLANK = -1;
+    	public static final int TOP = 0;
+    	public static final int SECOND = 1;
+    	public static final int THIRD = 2;
+    	/**
+    	 * 缓存Fragment view
+    	 */
+    	protected View rootView;
+
+    	protected MenuItemInfo info;
+
+    	protected Handler hand;
+
+    	@Override
+    	public void onCreate(Bundle savedInstanceState) {
+    		super.onCreate(savedInstanceState);
+    		hand = new Handler(this);
+    		Bundle arguments = getArguments();
+    		if (arguments != null) {
+    			info = (MenuItemInfo) (arguments.getSerializable("info"));
+    		}
+    	}
+
+    	@Override
+    	public void onResume() {
+    		super.onResume();
+    		if(getLevel()>BLANK){
+    //			MobclickAgent.onResume(getActivity());
+    		MobclickAgent.onPageStart(getMark()); //统计页面
+    		Logger.d("MobclickAgent", "PageStart "+getMark());
+    		}
+    	}
+
+    	@Override
+    	public void onPause() {
+    		super.onPause();
+    		if(getLevel()>BLANK){
+    		MobclickAgent.onPageEnd(getMark()); //统计页面
+    //		MobclickAgent.onPause(getActivity());
+    		Logger.d("MobclickAgent", "PageEnd "+getMark());
+    		}
+    	}
+    	
+    	/**
+    	 * 初始化rootView 带有缓存
+    	 * 
+    	 * @param inflater
+    	 * @param resource
+    	 */
+    	protected final void initRootView(LayoutInflater inflater, int resource,ViewGroup container) {
+    		if (rootView == null) {
+    			rootView = inflater.inflate(resource, container, false);
+    		}
+    		ViewGroup parent = (ViewGroup) rootView.getParent();
+    		if (parent != null) {
+    			parent.removeAllViewsInLayout(); 
+    			parent.removeView(rootView);
+    		}
+    	}
+    	
+    	/**
+    	 * 获取级别
+    	 * @return
+    	 */
+    	public abstract int getLevel();
+
+    	/**
+    	 * 获取标签
+    	 * @return
+    	 */
+    	public abstract String getMark();
+    	
+    	/**
+    	 * 提供刷新功能
+    	 */
+    	public void refresh(){
+    		
+    	}
+    	
+    	@Override
+    	public void onDestroyView() {
+    		super.onDestroyView();
+    		Logger.d("BaseFragment", getMark()+" onDestroyView");
+    		if(rootView !=null){
+    			ViewGroup parent = (ViewGroup) rootView.getParent();
+    			if (parent != null) {
+    				parent.removeAllViewsInLayout(); 
+    				parent.removeView(rootView);
+    			}
+    		}
+    	}
+    	
+    	@Override
+    	public void onDestroy() {
+    		hand.removeCallbacksAndMessages(null);
+    		super.onDestroy();
+    	}
+    }
+
+        </pre>
+    </div>
+</body>
+</html>
