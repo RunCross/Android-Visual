@@ -30,11 +30,11 @@
 </head>
 <body>
 <div>
-<pre>
+<pre class="content">
 	本文介绍的fragment基于Android3.0，support V4里的用法类似。
 	fragment是3.0以后用于展示切换界面的、有生命周期的一个容器。通常用于切换页面、适配平板和手机用途。
 	在Android3.0以上的系统中，可直接在Activity中使用fragment，如要兼容低版本的Android，使用support V4的，需要继承V4的FragmentActivity。
-	通过以下代码，就能替换fragment的显示。
+	通过以下代码，就能在Activity里替换fragment的显示。
 	<pre class="brush: java;">
 		private FragmentManager mFragmentManager;
 		private FragmentTransaction mFragmentTransaction;
@@ -78,15 +78,17 @@
 		 * @param info
 		 * @return
 		 */
-		private Fragment getFragment(MenuItemInfo info) {
-			fragment = ((FragmentSelectManger) AppEngine.getInstance().getManager(
-					IManager.FRAGMENT)).getFragment(info);
+		private Fragment getFragment() {
+			fragment = 你自己要显示的fragment;
 			mFragmentTransaction.setCustomAnimations(R.anim.fragment_slide_left_enter, R.anim.fragment_slide_left_exit, R.anim.fragment_slide_right_enter,R.anim.fragment_slide_right_exit);
 			mFragmentTransaction.replace(R.id.main_content, fragment);
 			return fragment;
 		}
 	</pre>
 	mFragmentTransaction.setCustomAnimations 用于添加fragment的切换动画。
+	两个参数的，仅用于当前切换fragment的动画效果;
+	四个参数的，可在按下后退键的时候，fragment出栈的时候也有动画效果
+	<div class = "code_title">fragment_slide_left_enter.xml</div>
 	<pre class="brush: xml;">
 	<?xml version="1.0" encoding="utf-8"?>
 	<set xmlns:android="http://schemas.android.com/apk/res/android"
@@ -108,6 +110,70 @@
 	        android:valueType="floatType" ></objectAnimator>
 	</set>
 	</pre>
+	<div class = "code_title">fragment_slide_left_exit.xml</div>
+	<pre class="brush: xml;"><?xml version="1.0" encoding="utf-8"?>
+<set xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shareInterpolator="false" >
+
+    <objectAnimator
+        android:duration="500"
+        android:interpolator="@android:interpolator/decelerate_quint"
+        android:propertyName="translationX"
+        android:valueFrom="0dp"
+        android:valueTo="-100dp"
+        android:valueType="floatType" ></objectAnimator>
+    <objectAnimator
+        android:duration="500"
+        android:interpolator="@android:interpolator/decelerate_quint"
+        android:propertyName="alpha"
+        android:valueFrom="1.0"
+        android:valueTo="0.0"
+        android:valueType="floatType" ></objectAnimator>
+
+</set></pre>
+	<div class = "code_title">fragment_slide_right_enter.xml</div>
+	<pre class="brush: xml;"><?xml version="1.0" encoding="utf-8"?>
+<set xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shareInterpolator="false" >
+
+    <objectAnimator
+        android:duration="500"
+        android:interpolator="@android:interpolator/decelerate_quint"
+        android:propertyName="translationX"
+        android:valueFrom="-100dp"
+        android:valueTo="0dp"
+        android:valueType="floatType" ></objectAnimator>
+    <objectAnimator
+        android:duration="500"
+        android:interpolator="@android:interpolator/decelerate_quint"
+        android:propertyName="alpha"
+        android:valueFrom="0.0"
+        android:valueTo="1.0"
+        android:valueType="floatType" ></objectAnimator>
+
+</set></pre>
+	<div class = "code_title">fragment_slide_right_exit.xml</div>
+	<pre class="brush: xml;"><?xml version="1.0" encoding="utf-8"?>
+<set xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shareInterpolator="false" >
+
+    <objectAnimator
+        android:duration="500"
+        android:interpolator="@android:interpolator/decelerate_quint"
+        android:propertyName="translationX"
+        android:valueFrom="0dp"
+        android:valueTo="100dp"
+        android:valueType="floatType" ></objectAnimator>
+    <objectAnimator
+        android:duration="500"
+        android:interpolator="@android:interpolator/decelerate_quint"
+        android:propertyName="alpha"
+        android:valueFrom="1.0"
+        android:valueTo="0.0"
+        android:valueType="floatType" ></objectAnimator>
+
+</set></pre>
+
 	<img src="static/img/fragment-alive.png"/>
 	</pre>
 </div>

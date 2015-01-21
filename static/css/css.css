@@ -53,3 +53,11 @@
 .gallery dd a, .gallery dd a:visited {color:#000; min-height:1em; text-decoration:none; display:block; padding:4px 5px 4px 20px; background:#b4be9c url(sub_grad.gif);}
 * html .gallery dd a, * html .gallery dd a:visited {height:1em;}
 .gallery dd a:hover {background: #a2ae03; color:#ff0;}
+
+.content{
+    font-size: 16px;    
+}
+
+.code_title{
+    font-weight:bold;
+}
